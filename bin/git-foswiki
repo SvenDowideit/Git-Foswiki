@@ -7,7 +7,10 @@ my %valid_commands = (
   init => 'initialise a new foswiki', 
   install => 'install a foswiki module',
 #  list => 'list foswiki modules that can be installed',
-#  update => 'update all submodules (from svn for now)',
+  update => 'update all submodules (from svn unless --git)',
+# build => 'build the specified extension --upload --notests .. (needs BuildContrib)',
+# buildrelease => 'build a foswiki release --notests',
+# branch => 'create a feature branch with the name of a Task Item, all commit messages will get auto-prefixed with this task id'
 );
 
 
@@ -44,6 +47,13 @@ if ($command eq 'init') {
   chdir('..');
   foreach my $module (@modules) {
     do_commands("git submodule add ./$module");
+  }
+} elsif ($command eq 'update') {
+  do_commands('git pull');
+  if (grep('--git', @ARGV)) {
+    do_commands('git submodule foreach git pull || :');
+  } else {
+    do_commands('git submodule foreach git svn rebase || :');
   }
 }
 
