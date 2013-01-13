@@ -6,8 +6,9 @@ use warnings;
 my %valid_commands = (
   init => 'initialise a new foswiki', 
   install => 'install a foswiki module',
-#  list => 'list foswiki modules that can be installed',
+  list => 'list foswiki modules that can be installed',
   update => 'update all submodules (from svn unless --git)',
+#  autoconf => 'autocreate a LocalSite.cfg and import any Config.spec files (and others listed)',
 # build => 'build the specified extension --upload --notests .. (needs BuildContrib)',
 # buildrelease => 'build a foswiki release --notests',
 # branch => 'create a feature branch with the name of a Task Item, all commit messages will get auto-prefixed with this task id'
@@ -55,6 +56,9 @@ if ($command eq 'init') {
   } else {
     do_commands('git submodule foreach git svn rebase || :');
   }
+} elsif ($command eq 'list') {
+#TODO: list --installed, list --enabled
+  do_commands('cd core ; ./pseudo-install.pl -L');
 }
 
 sub do_commands {
