@@ -6,7 +6,8 @@ use warnings;
 my %valid_commands = (
   init => 'initialise a new foswiki', 
   install => 'install a foswiki module',
-  list => 'list foswiki modules that can be installed',
+#  list => 'list foswiki modules that can be installed',
+#  update => 'update all submodules (from svn for now)',
 );
 
 
@@ -19,54 +20,40 @@ if ($#ARGV < 0 || !grep($ARGV[0], keys(%valid_commands))) {
   print "\n";
   exit -1;
 }
+my $command = shift @ARGV;
 
-if ($ARGV[0] eq 'init') {
+if ($command eq 'init') {
   #make sure dir is empty
   my $ls = `ls`;
-  #exit unless ($ls eq '');
-  #git init
-  `git init`;
-  
-    my $module = 'core';
-  
-  `git submodule add http://github.com/foswiki/$module`;
-  `git submodule update --init`;
-  #hook up svn 
-  chdir($module);
-  
-  do_commands("git svn init http://svn.foswiki.org -T ./$module");
-exit;
-my %svn2git = (  
-trunk             => 'master',
-Release01x00      => 'release',
-Release01x01      => 'Release01x01',
-'foswiki.org'       => 'foswiki',
-scratch           => 'scratch',
-Release04x02      => 'Release04x02',
-TWikiRelease04x02 => 'oldRelease04x02',
-Release           => 'oldRelease'
-);
-        foreach my $branchdata ( keys(%svn2git) ) {
-            if ( $branchdata ne 'trunk' ) {
-                my $svnremoteref = "refs/remotes/$branchdata";
-                my $gitremoteref = "origin/$svn2git{$branchdata}";
-                my $svnurl =
-"http:://svn.foswiki.org/$branchdata/$module";
-                print "Aliasing $svnremoteref as $gitremoteref\n";
-                do_commands("git update-ref $svnremoteref $gitremoteref");
-
-                print "\tclone from SVN url $svnurl :$svnremoteref\n";
-                do_commands("git config svn-remote.$branchdata.url $svnurl");
-                do_commands("git config svn-remote.$branchdata.fetch :$svnremoteref");
-            }
-        }
-#        print
-#"Aliasing refs/remotes/$svninfo->{branches}->{trunk}->{path}/$module as refs/remotes/trunk &\n";
-        print "Aliasing refs/remotes/trunk as origin/master\n";
-        do_commands("git update-ref refs/remotes/trunk origin/master");
-  
+  exit unless ($ls eq '');
+  do_commands('git init');
+  #TODO: want to git clone from a local repo if i can..
+  do_commands('git clone git://github.com/foswiki/core.git');
+  #TODO: is there a way for pseudo-install to then wire up the git svn links?
+  do_commands('git submodule add ./core');
+} elsif ($command eq 'install') {
+  if ($#ARGV < 0) {
+     print "\n\t please specify a module or alias to pseudo-install\n";
+     exit;
+  }
+  chdir('core');
+  my $output = do_commands('./pseudo-install.pl', @ARGV);
+  my @modules = $output =~ m/^Processing ([A-Za-z0-9-]*?)$/gm;
+  print "\n----\n$output\n----\n";
+  print "\n===\n".join(', ', @modules)."\n===\n";
+  chdir('..');
+  foreach my $module (@modules) {
+    do_commands("git submodule add ./$module");
+  }
 }
 
 sub do_commands {
+    my $command = join(' ', @_);
 
+    print "RUN: $command \n";
+    #local $ENV{PATH} = untaint( $ENV{PATH} );
+
+    return `$command`;
 }
+
+1;
